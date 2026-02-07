@@ -4,7 +4,7 @@ import { FeedGenerator } from './feed-generator';
 import { formatFeed } from './formatters';
 import { createApiRoutes, createUiRoutes } from './routes';
 
-export function createServer(port = 3005) {
+export function createServer(port = 3000) {
   const generator = new FeedGenerator(
     configManager.getConfig(),
     (cb) => configManager.onConfigChange(cb)
