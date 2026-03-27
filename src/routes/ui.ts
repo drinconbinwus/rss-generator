@@ -367,11 +367,15 @@ function getUiHtml(): string {
             <input type="checkbox" id="htmlInContent" checked onchange="updateContentOptions()">
             <label for="htmlInContent">HTML in Content</label>
           </div>
-          <div class="checkbox-group">
-            <input type="checkbox" id="useRealisticDates" checked onchange="updateContentOptions()">
-            <label for="useRealisticDates">Realistic Dates</label>
+          <div class="checkbox-group" style="grid-column: 1 / -1;">
+            <input type="checkbox" id="useCurrentDate" onchange="onDateModeChange()">
+            <label for="useCurrentDate">Use current date (generation time) for pub/updated</label>
           </div>
-          <div class="form-group" style="margin: 0;">
+          <div class="checkbox-group" id="realisticDatesRow">
+            <input type="checkbox" id="useRealisticDates" checked onchange="updateContentOptions()">
+            <label for="useRealisticDates">Realistic dates (random in range; updated may follow published)</label>
+          </div>
+          <div class="form-group" style="margin: 0;" id="dateRangeRow">
             <label>Date Range (days)</label>
             <input type="number" id="dateRangeDays" value="30" min="1" max="365" onchange="updateContentOptions()">
           </div>
@@ -448,8 +452,10 @@ function getUiHtml(): string {
       document.getElementById('includeVideos').checked = co.includeVideos;
       document.getElementById('includeCategories').checked = co.includeCategories;
       document.getElementById('htmlInContent').checked = co.htmlInContent;
+      document.getElementById('useCurrentDate').checked = co.useCurrentDate === true;
       document.getElementById('useRealisticDates').checked = co.useRealisticDates;
       document.getElementById('dateRangeDays').value = co.dateRangeDays;
+      syncDateModeControls();
       
       updateSliderDisplays();
       
@@ -589,6 +595,22 @@ function getUiHtml(): string {
       showToast('Interval updated!');
     }
     
+    function syncDateModeControls() {
+      const useCurrent = document.getElementById('useCurrentDate').checked;
+      document.getElementById('useRealisticDates').disabled = useCurrent;
+      document.getElementById('dateRangeDays').disabled = useCurrent;
+      const op = useCurrent ? '0.5' : '1';
+      const realisticRow = document.getElementById('realisticDatesRow');
+      const rangeRow = document.getElementById('dateRangeRow');
+      if (realisticRow) realisticRow.style.opacity = op;
+      if (rangeRow) rangeRow.style.opacity = op;
+    }
+
+    async function onDateModeChange() {
+      syncDateModeControls();
+      await updateContentOptions();
+    }
+
     async function updateContentOptions() {
       updateSliderDisplays();
       
@@ -616,6 +638,7 @@ function getUiHtml(): string {
           includeVideos: document.getElementById('includeVideos').checked,
           includeCategories: document.getElementById('includeCategories').checked,
           htmlInContent: document.getElementById('htmlInContent').checked,
+          useCurrentDate: document.getElementById('useCurrentDate').checked,
           useRealisticDates: document.getElementById('useRealisticDates').checked,
           dateRangeDays: parseInt(document.getElementById('dateRangeDays').value)
         })

@@ -100,10 +100,24 @@ export class FeedGenerator {
     return arr[index]!;
   }
 
+  /** Fisher–Yates shuffle (unbiased); mutates a copy of arr. */
+  private shuffleInPlace<T>(arr: T[]): void {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+    }
+  }
+
   private pickRandomN<T>(arr: T[], min: number, max: number): T[] {
     const count = this.randomInt(min, Math.min(max, arr.length));
-    const shuffled = [...arr].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+    const copy = [...arr];
+    this.shuffleInPlace(copy);
+    return copy.slice(0, count);
+  }
+
+  /** Short alphanumeric token for title/link uniqueness across regenerations. */
+  private randomTitleSalt(): string {
+    return Math.random().toString(36).slice(2, 10);
   }
 
   private generateLorem(minWords: number, maxWords: number): string {
@@ -213,7 +227,7 @@ export class FeedGenerator {
     return content.join('\n');
   }
 
-  private generateItem(index: number, source?: string): GeneratedItem {
+  private generateItem(source?: string): GeneratedItem {
     const { contentOptions, fieldBehavior } = this.config;
 
     // Check for forced empty fields
@@ -222,14 +236,24 @@ export class FeedGenerator {
 
     const now = Date.now();
     const dateRange = contentOptions.dateRangeDays * 24 * 60 * 60 * 1000;
-    const publishedAt = contentOptions.useRealisticDates
-      ? new Date(now - Math.random() * dateRange)
-      : new Date(now - index * 60 * 60 * 1000);
 
-    const lastModifiedAt =
-      contentOptions.useRealisticDates && Math.random() > 0.5
-        ? new Date(publishedAt.getTime() + Math.random() * 24 * 60 * 60 * 1000)
-        : publishedAt;
+    let publishedAt: Date;
+    let lastModifiedAt: Date;
+
+    if (contentOptions.useCurrentDate) {
+      const t = new Date();
+      publishedAt = t;
+      lastModifiedAt = t;
+    } else if (contentOptions.useRealisticDates) {
+      publishedAt = new Date(now - Math.random() * dateRange);
+      lastModifiedAt =
+        Math.random() > 0.5
+          ? new Date(publishedAt.getTime() + Math.random() * 24 * 60 * 60 * 1000)
+          : publishedAt;
+    } else {
+      publishedAt = new Date(now - Math.random() * dateRange);
+      lastModifiedAt = publishedAt;
+    }
 
     const media = this.generateMedia(contentOptions);
     const guid = this.generateItemId();
@@ -250,9 +274,10 @@ export class FeedGenerator {
 
     // Apply field presence logic
     if (!forceEmpty.has('title') && this.shouldIncludeField('title')) {
-      const baseTitle = TITLES[index % TITLES.length];
+      const baseTitle = this.pickRandom(TITLES);
       const subtitle = this.generateLorem(3, 6).slice(0, -1);
-      item.title = `${source && source !== 'default' ? `[${source}] ` : ''}${baseTitle} - ${subtitle}`;
+      const salt = this.randomTitleSalt();
+      item.title = `${source && source !== 'default' ? `[${source}] ` : ''}${baseTitle} - ${subtitle} · ${salt}`;
       if (forceInvalid.has('title')) {
         item.title = ''; // Force empty
       }
@@ -313,9 +338,11 @@ export class FeedGenerator {
   }
 
   regenerate(): void {
-    this.state.items = Array.from({ length: this.config.itemCount }, (_, i) =>
-      this.generateItem(i),
+    const items = Array.from({ length: this.config.itemCount }, () =>
+      this.generateItem(),
     );
+    this.shuffleInPlace(items);
+    this.state.items = items;
     this.state.lastUpdate = Date.now();
     this.state.updateCount++;
     console.log(
@@ -333,44 +360,11 @@ export class FeedGenerator {
   }
 
   private generateItemsForSource(source: string): GeneratedItem[] {
-    // Create a seeded random generator based on the source
-    const seed = this.hashString(source);
-    const seededRandom = this.createSeededRandom(seed);
-
-    // Create a temporary generator instance with seeded random
-    const originalRandom = Math.random;
-    Math.random = seededRandom;
-
-    try {
-      // Generate items using the seeded random
-      const items = Array.from({ length: this.config.itemCount }, (_, i) =>
-        this.generateItem(i, source),
-      );
-
-      return items;
-    } finally {
-      // Restore original random function
-      Math.random = originalRandom;
-    }
-  }
-
-  private hashString(str: string): number {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash);
-  }
-
-  private createSeededRandom(seed: number): () => number {
-    // Simple seeded random number generator
-    let x = Math.sin(seed) * 10000;
-    return function () {
-      x = Math.sin(x) * 10000;
-      return x - Math.floor(x);
-    };
+    const items = Array.from({ length: this.config.itemCount }, () =>
+      this.generateItem(source),
+    );
+    this.shuffleInPlace(items);
+    return items;
   }
 
   getState() {

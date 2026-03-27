@@ -26,6 +26,7 @@ const DEFAULT_CONFIG: FeedConfig = {
       'Sarah Williams',
       'Michael Brown',
     ],
+    useCurrentDate: false,
     useRealisticDates: true,
     dateRangeDays: 30,
     includeEmbeds: true,

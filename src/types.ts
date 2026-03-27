@@ -43,6 +43,8 @@ export interface ContentOptions {
   includeCategories: boolean;
   categoryCount: { min: number; max: number };
   authorPatterns: string[];
+  /** When true, publishedAt and lastModifiedAt are set to the time of generation. */
+  useCurrentDate: boolean;
   useRealisticDates: boolean;
   dateRangeDays: number;
   includeEmbeds: boolean;

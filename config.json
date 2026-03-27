@@ -3,16 +3,16 @@
   "description": "A highly customizable RSS feed for testing ingestors",
   "link": "http://localhost:3005",
   "language": "en-us",
-  "itemCount": 100,
-  "updateIntervalMs": 60000,
+  "itemCount": 10,
+  "updateIntervalMs": 3600000,
   "contentOptions": {
     "titleLength": {
-      "min": 20,
-      "max": 70
+      "min": 10,
+      "max": 10
     },
     "contentLength": {
-      "min": 2889,
-      "max": 4078
+      "min": 1525,
+      "max": 2595
     },
     "summaryLength": {
       "min": 100,
@@ -36,7 +36,8 @@
       "Sarah Williams",
       "Michael Brown"
     ],
-    "useRealisticDates": true,
+    "useCurrentDate": false,
+    "useRealisticDates": false,
     "dateRangeDays": 30,
     "includeEmbeds": true,
     "htmlInContent": true
@@ -46,8 +47,8 @@
     "summaryPresence": 0.9,
     "contentPresence": 1,
     "linkPresence": 1,
-    "imageUrlPresence": 0.8,
-    "authorPresence": 0.95,
+    "imageUrlPresence": 1,
+    "authorPresence": 1,
     "publishedAtPresence": 1,
     "guidPresence": 1,
     "lastModifiedAtPresence": 0.7,
