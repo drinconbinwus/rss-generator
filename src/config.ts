@@ -74,6 +74,9 @@ export class ConfigManager {
     this.load()
       .then((config) => {
         this.config = config;
+        // FeedGenerator and other listeners must run after disk config replaces defaults;
+        // otherwise the feed keeps DEFAULT_CONFIG (e.g. itemCount 20) until the user changes settings.
+        this.notifyListeners();
       })
       .catch((error) => {
         console.warn('Failed to load initial config, using defaults:', error);
