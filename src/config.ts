@@ -9,6 +9,7 @@ const DEFAULT_CONFIG: FeedConfig = {
 
   itemCount: 20,
   updateIntervalMs: 60000, // 1 minute
+  regenerateOnConfigChange: true,
 
   contentOptions: {
     titleLength: { min: 20, max: 70 },

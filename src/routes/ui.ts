@@ -243,6 +243,143 @@ function getUiHtml(): string {
     }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.success { border-color: var(--success); }
+    .toast.error { border-color: var(--danger); }
+    
+    .main-tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .main-tab {
+      padding: 0.75rem 1.25rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: -1px;
+    }
+    .main-tab:hover { color: var(--text); }
+    .main-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .page { display: none; }
+    .page.active { display: block; }
+    
+    .items-hint {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      line-height: 1.45;
+    }
+    .items-list-wrap {
+      max-height: min(70vh, 560px);
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg);
+    }
+    .item-row {
+      display: grid;
+      grid-template-columns: 2.5rem 1fr auto;
+      gap: 0.75rem;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-row:hover { background: rgba(99, 102, 241, 0.06); }
+    .item-row.selected { background: rgba(99, 102, 241, 0.12); }
+    .item-row .idx { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .item-row .title-cell { min-width: 0; }
+    .item-row .title-cell .t { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-row .title-cell .sub { color: var(--text-muted); font-size: 0.75rem; margin-top: 0.125rem; }
+    
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      width: min(720px, 100%);
+      max-height: min(92vh, 900px);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+    }
+    .modal-head {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .modal-head h3 { font-size: 1rem; font-weight: 600; }
+    .modal-body {
+      padding: 1rem 1.25rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .modal-foot {
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .modal-error {
+      padding: 0.5rem 1rem;
+      background: rgba(239, 68, 68, 0.12);
+      border-bottom: 1px solid var(--border);
+      color: #fca5a5;
+      font-size: 0.8125rem;
+      display: none;
+    }
+    .modal-error.show { display: block; }
+    .guid-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .guid-row code {
+      font-size: 0.8125rem;
+      padding: 0.25rem 0.5rem;
+      background: var(--bg);
+      border-radius: 0.25rem;
+      word-break: break-all;
+    }
+    .form-group textarea.content-area {
+      width: 100%;
+      min-height: 14rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8125rem;
+      line-height: 1.45;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      color: var(--text);
+      resize: vertical;
+    }
+    .quick-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
     
     @media (max-width: 768px) {
       .container { padding: 1rem; }
@@ -261,6 +398,12 @@ function getUiHtml(): string {
       </div>
     </header>
     
+    <div class="main-tabs" role="tablist">
+      <button type="button" class="main-tab active" id="mainTabGen" onclick="showPage('generator')">Generator</button>
+      <button type="button" class="main-tab" id="mainTabItems" onclick="showPage('items')">Items</button>
+    </div>
+    
+    <div id="page-generator" class="page active">
     <div class="grid">
       <!-- Endpoints Card -->
       <div class="card">
@@ -278,6 +421,10 @@ function getUiHtml(): string {
         <div class="form-group" style="margin-top: 1rem;">
           <label>Update Interval (seconds)</label>
           <input type="number" id="updateInterval" value="60" min="0" max="3600" onchange="updateInterval()">
+        </div>
+        <div class="checkbox-group" style="margin-top: 1rem;">
+          <input type="checkbox" id="regenerateOnConfigChange" checked onchange="updateRegenerateOnConfigChange()">
+          <label for="regenerateOnConfigChange">Regenerate items when config changes</label>
         </div>
       </div>
       
@@ -300,6 +447,9 @@ function getUiHtml(): string {
           <label>Item Count</label>
           <input type="number" id="itemCount" value="20" min="1" max="500" onchange="updateItemCount()">
         </div>
+        <p class="items-hint" style="margin-top: 0.75rem;">
+          For stable GUIDs while editing items, turn off “Regenerate items when config changes” above and set update interval to 0.
+        </p>
       </div>
       
       <!-- Content Options -->
@@ -406,13 +556,90 @@ function getUiHtml(): string {
           <div class="multi-select" id="forceInvalid"></div>
         </div>
       </div>
-      
-      <!-- Preview -->
+    </div>
+    </div>
+    
+    <div id="page-items" class="page">
       <div class="card" style="grid-column: 1 / -1;">
-        <h2>👁️ Preview</h2>
-        <div class="preview">
-          <div class="preview-items" id="previewItems"></div>
+        <h2>📋 Items</h2>
+        <p class="items-hint">
+          Edit feed items in place; GUIDs stay the same until you use <strong>Regenerate Items</strong> on the Generator tab.
+          Default feed URL: <a id="defaultFeedLink" href="#" target="_blank" style="color: var(--accent);">/feed</a>
+        </p>
+        <div class="form-group">
+          <label>Filter by title or GUID</label>
+          <input type="search" id="itemSearch" placeholder="Type to filter…" oninput="renderItemsList()">
         </div>
+        <div class="items-list-wrap" id="itemsListWrap">
+          <div id="itemsList" class="items-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="itemModalOverlay" class="modal-overlay" onclick="if(event.target===this) closeItemModal(true)">
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle" onclick="event.stopPropagation()">
+      <div class="modal-error" id="itemModalError"></div>
+      <div class="modal-head">
+        <h3 id="itemModalTitle">Edit item</h3>
+        <button type="button" class="btn btn-secondary" onclick="closeItemModal(false)">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>GUID (read-only)</label>
+          <div class="guid-row">
+            <code id="editGuid"></code>
+            <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="copyGuid()">Copy</button>
+          </div>
+        </div>
+        <div class="quick-row">
+          <button type="button" class="btn btn-secondary" onclick="setUpdatedNow()">Set updated to now</button>
+          <button type="button" class="btn btn-secondary" onclick="setPublishedNow()">Set published to now</button>
+        </div>
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="editTitle">
+        </div>
+        <div class="form-group">
+          <label>Summary</label>
+          <textarea id="editSummary" rows="3" style="width:100%; padding:0.5rem 0.75rem; background:var(--bg); border:1px solid var(--border); border-radius:0.375rem; color:var(--text); font-size:0.875rem;"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Content</label>
+          <textarea id="editContent" class="content-area"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Link</label>
+            <input type="text" id="editLink">
+          </div>
+          <div class="form-group">
+            <label>Image URL</label>
+            <input type="text" id="editImageUrl">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Author</label>
+          <input type="text" id="editAuthor">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Published (local)</label>
+            <input type="datetime-local" id="editPublishedAt">
+          </div>
+          <div class="form-group">
+            <label>Last modified (local)</label>
+            <input type="datetime-local" id="editLastModifiedAt">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Categories (comma or newline separated)</label>
+          <textarea id="editCategories" rows="2" style="width:100%; padding:0.5rem 0.75rem; background:var(--bg); border:1px solid var(--border); border-radius:0.375rem; color:var(--text); font-size:0.875rem;"></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-secondary" onclick="closeItemModal(true)">Cancel</button>
+        <button type="button" class="btn btn-primary" id="itemSaveBtn" onclick="saveItemModal()">Save</button>
       </div>
     </div>
   </div>
@@ -422,13 +649,42 @@ function getUiHtml(): string {
   <script>
     const fields = ['title', 'summary', 'content', 'link', 'imageUrl', 'author', 'publishedAt', 'guid', 'lastModifiedAt', 'categories'];
     let config = {};
+    let itemsCache = [];
+    let editIndex = -1;
+    let editSnapshot = '';
+    
+    function toDatetimeLocal(d) {
+      const x = d instanceof Date ? d : new Date(d);
+      if (isNaN(x.getTime())) return '';
+      const pad = (n) => String(n).padStart(2, '0');
+      return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()) + 'T' + pad(x.getHours()) + ':' + pad(x.getMinutes());
+    }
+    
+    function showPage(page) {
+      document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      if (page === 'generator') {
+        document.getElementById('page-generator').classList.add('active');
+        document.getElementById('mainTabGen').classList.add('active');
+      } else {
+        document.getElementById('page-items').classList.add('active');
+        document.getElementById('mainTabItems').classList.add('active');
+        loadItemsList();
+      }
+    }
     
     async function loadConfig() {
       const res = await fetch('/api/config');
       config = await res.json();
       renderConfig();
       loadEndpoints();
-      loadPreview();
+      const base = (config.link || '').replace(/\\/$/, '');
+      const feedA = document.getElementById('defaultFeedLink');
+      if (feedA) {
+        feedA.href = base + '/feed';
+        feedA.textContent = base + '/feed';
+      }
+      await loadItemsList();
     }
     
     function renderConfig() {
@@ -437,6 +693,7 @@ function getUiHtml(): string {
       document.getElementById('feedLink').value = config.link;
       document.getElementById('itemCount').value = config.itemCount;
       document.getElementById('updateInterval').value = config.updateIntervalMs / 1000;
+      document.getElementById('regenerateOnConfigChange').checked = config.regenerateOnConfigChange !== false;
       
       // Content options
       const co = config.contentOptions;
@@ -532,26 +789,184 @@ function getUiHtml(): string {
       document.getElementById('endpoints').innerHTML = html;
     }
     
-    async function loadPreview() {
+    async function loadItemsList() {
       const res = await fetch('/api/items');
-      const items = await res.json();
-      
-      const html = items.slice(0, 10).map(item => \`
-        <div class="preview-item">
-          <div class="title">\${item.title || '<em>No title</em>'}</div>
-          <div class="meta">
-            \${item.author || 'Unknown'} • \${new Date(item.publishedAt).toLocaleDateString()} • 
-            \${item.categories.length} categories
+      itemsCache = await res.json();
+      renderItemsList();
+    }
+    
+    function renderItemsList() {
+      const q = (document.getElementById('itemSearch') && document.getElementById('itemSearch').value || '').trim().toLowerCase();
+      const list = document.getElementById('itemsList');
+      if (!list) return;
+      let rows = itemsCache.map((item, i) => ({ item, i }));
+      if (q) {
+        rows = rows.filter(({ item }) => {
+          const t = (item.title || '').toLowerCase();
+          const g = (item.guid || '').toLowerCase();
+          return t.includes(q) || g.includes(q);
+        });
+      }
+      list.innerHTML = rows.map(({ item, i }) => {
+        const shortG = (item.guid || '').length > 10 ? (item.guid.slice(0, 8) + '…') : (item.guid || '');
+        const pub = item.publishedAt ? new Date(item.publishedAt).toLocaleString() : '—';
+        const title = item.title || '(no title)';
+        return \`<div class="item-row\${i === editIndex ? ' selected' : ''}" onclick="openItemModal(\${i})">
+          <span class="idx">#\${i}</span>
+          <div class="title-cell">
+            <div class="t">\${title.replace(/</g, '&lt;')}</div>
+            <div class="sub">\${shortG} · \${pub}</div>
           </div>
-        </div>\`).join('');
-      
-      document.getElementById('previewItems').innerHTML = html;
+          <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem;" onclick="event.stopPropagation();openItemModal(\${i})">Edit</button>
+        </div>\`;
+      }).join('');
+    }
+    
+    function getModalSnapshot() {
+      return JSON.stringify({
+        title: document.getElementById('editTitle').value,
+        summary: document.getElementById('editSummary').value,
+        content: document.getElementById('editContent').value,
+        link: document.getElementById('editLink').value,
+        imageUrl: document.getElementById('editImageUrl').value,
+        author: document.getElementById('editAuthor').value,
+        publishedAt: document.getElementById('editPublishedAt').value,
+        lastModifiedAt: document.getElementById('editLastModifiedAt').value,
+        categories: document.getElementById('editCategories').value
+      });
+    }
+    
+    function parseCategories(text) {
+      return text.split(/[,\\n]/).map(s => s.trim()).filter(Boolean);
+    }
+    
+    function openItemModal(index) {
+      const item = itemsCache[index];
+      if (!item) return;
+      editIndex = index;
+      document.getElementById('itemModalError').classList.remove('show');
+      document.getElementById('itemModalError').textContent = '';
+      document.getElementById('editGuid').textContent = item.guid;
+      document.getElementById('editTitle').value = item.title || '';
+      document.getElementById('editSummary').value = item.summary || '';
+      document.getElementById('editContent').value = item.content || '';
+      document.getElementById('editLink').value = item.link || '';
+      document.getElementById('editImageUrl').value = item.imageUrl || '';
+      document.getElementById('editAuthor').value = item.author || '';
+      document.getElementById('editPublishedAt').value = toDatetimeLocal(item.publishedAt);
+      document.getElementById('editLastModifiedAt').value = toDatetimeLocal(item.lastModifiedAt);
+      document.getElementById('editCategories').value = (item.categories || []).join(', ');
+      document.getElementById('itemModalTitle').textContent = 'Edit item #' + index;
+      editSnapshot = getModalSnapshot();
+      document.getElementById('itemModalOverlay').classList.add('open');
+      document.getElementById('itemSaveBtn').disabled = false;
+      document.getElementById('itemSaveBtn').textContent = 'Save';
+    }
+    
+    function copyGuid() {
+      const g = document.getElementById('editGuid').textContent;
+      navigator.clipboard.writeText(g);
+      showToast('GUID copied');
+    }
+    
+    function setUpdatedNow() {
+      document.getElementById('editLastModifiedAt').value = toDatetimeLocal(new Date());
+    }
+    
+    function setPublishedNow() {
+      document.getElementById('editPublishedAt').value = toDatetimeLocal(new Date());
+    }
+    
+    function closeItemModal(confirmDirty) {
+      if (confirmDirty && getModalSnapshot() !== editSnapshot) {
+        if (!confirm('Discard unsaved changes?')) return;
+      }
+      document.getElementById('itemModalOverlay').classList.remove('open');
+      editIndex = -1;
+    }
+    
+    async function saveItemModal() {
+      if (editIndex < 0) return;
+      const btn = document.getElementById('itemSaveBtn');
+      const errEl = document.getElementById('itemModalError');
+      errEl.classList.remove('show');
+      const body = {
+        title: document.getElementById('editTitle').value,
+        summary: document.getElementById('editSummary').value,
+        content: document.getElementById('editContent').value,
+        link: document.getElementById('editLink').value,
+        imageUrl: document.getElementById('editImageUrl').value,
+        author: document.getElementById('editAuthor').value,
+        categories: parseCategories(document.getElementById('editCategories').value)
+      };
+      const pub = document.getElementById('editPublishedAt').value;
+      const lm = document.getElementById('editLastModifiedAt').value;
+      if (pub) body.publishedAt = new Date(pub).toISOString();
+      if (lm) body.lastModifiedAt = new Date(lm).toISOString();
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const res = await fetch('/api/items/' + editIndex, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = data.error || ('HTTP ' + res.status);
+          errEl.textContent = msg;
+          errEl.classList.add('show');
+          showToast(msg, 'error');
+          return;
+        }
+        itemsCache[editIndex] = data.item;
+        showToast('Item saved');
+        document.getElementById('itemModalOverlay').classList.remove('open');
+        editIndex = -1;
+        renderItemsList();
+      } catch (e) {
+        const msg = e.message || 'Save failed';
+        errEl.textContent = msg;
+        errEl.classList.add('show');
+        showToast(msg, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save';
+      }
+    }
+    
+    document.addEventListener('keydown', (e) => {
+      const modalOpen = document.getElementById('itemModalOverlay').classList.contains('open');
+      if (!modalOpen) return;
+      if (e.key === 'Escape') {
+        closeItemModal(true);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveItemModal();
+      }
+    });
+    
+    async function updateRegenerateOnConfigChange() {
+      await fetch('/api/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: document.getElementById('feedTitle').value,
+          description: document.getElementById('feedDescription').value,
+          link: document.getElementById('feedLink').value,
+          regenerateOnConfigChange: document.getElementById('regenerateOnConfigChange').checked
+        })
+      });
+      const r = await fetch('/api/config');
+      config = await r.json();
+      showToast('Saved');
     }
     
     async function regenerate() {
       await fetch('/api/regenerate', { method: 'POST' });
       showToast('Items regenerated!');
-      loadPreview();
+      await loadItemsList();
       updateState();
     }
     
@@ -700,11 +1115,12 @@ function getUiHtml(): string {
       showToast('URL copied!');
     }
     
-    function showToast(message) {
+    function showToast(message, type) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
-      toast.classList.add('show', 'success');
-      setTimeout(() => toast.classList.remove('show', 'success'), 2000);
+      toast.classList.remove('success', 'error');
+      toast.classList.add('show', type === 'error' ? 'error' : 'success');
+      setTimeout(() => toast.classList.remove('show', 'success', 'error'), 2500);
     }
     
     // Poll for updates

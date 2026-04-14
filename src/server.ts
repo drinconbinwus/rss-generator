@@ -63,7 +63,19 @@ export function createServer(port = 3000) {
         return uiRoutes.handleGetState();
       }
       if (path === '/api/items') {
-        return apiRoutes.handleGetItems();
+        if (request.method === 'GET') {
+          return apiRoutes.handleGetItems();
+        }
+        if (request.method === 'PATCH') {
+          return apiRoutes.handlePatchItemByGuidBody(request);
+        }
+      }
+      const itemPatchMatch = path.match(/^\/api\/items\/(\d+)$/);
+      if (itemPatchMatch && request.method === 'PATCH') {
+        return apiRoutes.handlePatchItemByIndex(
+          request,
+          Number.parseInt(itemPatchMatch[1]!, 10),
+        );
       }
       if (path === '/api/endpoints') {
         return apiRoutes.handleGetEndpoints(request);

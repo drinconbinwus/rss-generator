@@ -32,7 +32,7 @@ A highly customizable RSS feed generator built with Bun, designed for testing RS
 ### 🎮 Web-based UI Dashboard
 
 - **Real-time configuration** - Modify settings without restarting
-- **Live preview** - See generated feed items instantly
+- **Items editor** - Browse, filter, and edit generated items (GUIDs stay stable until you regenerate)
 - **Endpoint management** - Enable/disable specific feed formats
 - **Field behavior controls** - Adjust probabilities with sliders
 - **Force empty/invalid fields** - Perfect for testing error handling
@@ -43,6 +43,7 @@ A highly customizable RSS feed generator built with Bun, designed for testing RS
 - **Item count** - Control number of generated feed items
 - **Content options** - Length ranges, media inclusion, HTML support
 - **Update intervals** - Auto-regeneration with configurable timing
+- **Regenerate on config change** - Optional; when disabled, items only refresh when you call regenerate or on first boot
 - **Field behaviors** - Fine-grained control over field presence probabilities
 
 ## 🚀 Quick Start
@@ -90,7 +91,8 @@ Access the web dashboard at `http://localhost:3000/ui` (or your configured port)
 
 - **Regenerate Items** - Generate new feed content immediately
 - **Reset Config** - Restore default settings
-- **Update Interval** - Set auto-regeneration timing
+- **Update Interval** - Set auto-regeneration timing (use `0` for no timer-driven regeneration)
+- **Regenerate items when config changes** - When off, changing sliders or feed settings does not replace items; use **Regenerate Items** for new GUIDs
 
 #### 📰 Feed Settings
 
@@ -115,11 +117,13 @@ Control the probability (0-100%) of each field appearing:
 - **Force Empty** - Select fields to always be empty
 - **Force Invalid** - Select fields with invalid values
 
-#### 👁️ Live Preview
+#### 📋 Items
 
-- View the most recent 10 generated items
-- See titles, authors, dates, and categories
-- Real-time updates when settings change
+- Full list of generated items with filter by title or GUID
+- Edit any item in a modal (title, summary, HTML content, links, dates, categories); **GUIDs are not changed** by edits
+- Quick actions: **Set updated to now** / **Set published to now** for feed-update testing
+- Keyboard: **Escape** closes the editor; **Ctrl/Cmd+S** saves
+- **Note:** Edits apply to the default stored feed (`GET /feed` without `?source=`). Feeds with `?source=name` are generated on-demand and are not these items.
 
 ## 📡 Available Endpoints
 
@@ -164,8 +168,16 @@ Each source generates consistent but unique content, with titles including the s
 - `POST /api/config/reset` - Reset to default configuration
 - `POST /api/regenerate` - Regenerate feed items
 - `GET /api/state` - Get generator state
-- `GET /api/items` - Get generated feed items
+- `GET /api/items` - Get generated feed items (default feed only)
+- `PATCH /api/items/:index` - Partial update of one item by index (JSON body). Omit `guid`; `publishedAt` / `lastModifiedAt` as ISO strings
+- `PATCH /api/items` - Partial update by GUID: JSON body must include `"guid": "<id>"` plus fields to change
 - `GET /api/endpoints` - Get available feed endpoints
+
+### Manual edits and regeneration
+
+- Set **`regenerateOnConfigChange`** to `false` (via `PATCH /api/config` or the UI) **and** **`updateIntervalMs`** to `0` to avoid automatic item churn while you edit items or config.
+- The first config load after startup still regenerates items once so the feed matches `config.json`.
+- **`POST /api/regenerate`** always creates new items and new GUIDs.
 
 ## ⚙️ Configuration
 
@@ -180,7 +192,8 @@ The generator uses a JSON configuration file (`config.json`) that is automatical
   "title": "Test RSS Feed Generator",
   "description": "A highly customizable RSS feed for testing ingestors",
   "link": "http://localhost:3000",
-  "language": "en-us"
+  "language": "en-us",
+  "regenerateOnConfigChange": true
 }
 ```
 

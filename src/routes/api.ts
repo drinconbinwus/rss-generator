@@ -1,6 +1,6 @@
 import type { FeedGenerator } from '../feed-generator';
 import type { ConfigManager } from '../config';
-import type { ContentSourceFormat, FeedConfig } from '../types';
+import type { ContentSourceFormat, FeedConfig, ItemPatch } from '../types';
 import { formatFeed } from '../formatters';
 
 export function createApiRoutes(
@@ -91,6 +91,57 @@ export function createApiRoutes(
 
     async handleGetItems(): Promise<Response> {
       return Response.json(generator.getItems());
+    },
+
+    async handlePatchItemByIndex(
+      request: Request,
+      index: number,
+    ): Promise<Response> {
+      try {
+        const body = (await request.json()) as Record<string, unknown>;
+        if (Object.prototype.hasOwnProperty.call(body, 'guid')) {
+          return Response.json(
+            { error: 'Cannot change guid; omit guid from body' },
+            { status: 400 },
+          );
+        }
+        const result = generator.patchItemByIndex(index, body as ItemPatch);
+        if (!result.ok) {
+          const status = result.error === 'Item not found' ? 404 : 400;
+          return Response.json({ error: result.error }, { status });
+        }
+        return Response.json({ success: true, item: result.item });
+      } catch {
+        return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+      }
+    },
+
+    async handlePatchItemByGuidBody(request: Request): Promise<Response> {
+      try {
+        const body = (await request.json()) as Record<string, unknown>;
+        const guid = body.guid;
+        if (typeof guid !== 'string' || guid.length === 0) {
+          return Response.json(
+            { error: 'Body must include a non-empty guid string' },
+            { status: 400 },
+          );
+        }
+        const { guid: _omit, ...patch } = body;
+        if (Object.prototype.hasOwnProperty.call(patch, 'guid')) {
+          return Response.json(
+            { error: 'Cannot change guid' },
+            { status: 400 },
+          );
+        }
+        const result = generator.patchItemByGuid(guid, patch as ItemPatch);
+        if (!result.ok) {
+          const status = result.error === 'Item not found' ? 404 : 400;
+          return Response.json({ error: result.error }, { status });
+        }
+        return Response.json({ success: true, item: result.item });
+      } catch {
+        return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+      }
     },
 
     async handleResetConfig(): Promise<Response> {

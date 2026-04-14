@@ -3,6 +3,7 @@ import type {
   GeneratedItem,
   ExtractedMedia,
   ContentSourceFormat,
+  ItemPatch,
 } from './types';
 
 // Fast random data generation without external dependencies
@@ -58,6 +59,7 @@ export class FeedGenerator {
   };
 
   private updateTimer?: Timer;
+  private firstConfigListener = true;
 
   constructor(
     private config: FeedConfig,
@@ -66,7 +68,12 @@ export class FeedGenerator {
     this.regenerate();
     onConfigChange((newConfig) => {
       this.config = newConfig;
-      this.regenerate();
+      const shouldRegenerate =
+        this.firstConfigListener || newConfig.regenerateOnConfigChange;
+      this.firstConfigListener = false;
+      if (shouldRegenerate) {
+        this.regenerate();
+      }
       this.setupAutoUpdate();
     });
     this.setupAutoUpdate();
@@ -372,5 +379,91 @@ export class FeedGenerator {
       ...this.state,
       itemCount: this.state.items.length,
     };
+  }
+
+  private parsePatchDate(
+    value: unknown,
+    field: string,
+  ): { ok: true; date: Date } | { ok: false; error: string } {
+    if (value === undefined) {
+      return { ok: false, error: `Missing ${field}` };
+    }
+    const d =
+      value instanceof Date
+        ? value
+        : typeof value === 'string'
+          ? new Date(value)
+          : null;
+    if (!d || Number.isNaN(d.getTime())) {
+      return { ok: false, error: `Invalid ${field}` };
+    }
+    return { ok: true, date: d };
+  }
+
+  /**
+   * Apply partial updates; `guid` cannot be changed (omit from patch).
+   */
+  patchItemByIndex(
+    index: number,
+    patch: ItemPatch & Record<string, unknown>,
+  ): { ok: true; item: GeneratedItem } | { ok: false; error: string } {
+    if (Object.prototype.hasOwnProperty.call(patch, 'guid')) {
+      return { ok: false, error: 'Cannot change guid' };
+    }
+
+    const item = this.state.items[index];
+    if (!item) {
+      return { ok: false, error: 'Item not found' };
+    }
+
+    const next: GeneratedItem = { ...item };
+
+    if (patch.title !== undefined) next.title = String(patch.title);
+    if (patch.summary !== undefined) next.summary = String(patch.summary);
+    if (patch.content !== undefined) next.content = String(patch.content);
+    if (patch.link !== undefined) next.link = String(patch.link);
+    if (patch.imageUrl !== undefined) next.imageUrl = String(patch.imageUrl);
+    if (patch.author !== undefined) next.author = String(patch.author);
+
+    if (patch.publishedAt !== undefined) {
+      const r = this.parsePatchDate(patch.publishedAt, 'publishedAt');
+      if (!r.ok) return r;
+      next.publishedAt = r.date;
+    }
+
+    if (patch.lastModifiedAt !== undefined) {
+      const r = this.parsePatchDate(patch.lastModifiedAt, 'lastModifiedAt');
+      if (!r.ok) return r;
+      next.lastModifiedAt = r.date;
+    }
+
+    if (patch.categories !== undefined) {
+      if (!Array.isArray(patch.categories)) {
+        return { ok: false, error: 'categories must be an array of strings' };
+      }
+      next.categories = patch.categories.map(String);
+    }
+
+    if (patch.extractedMedia !== undefined) {
+      if (!Array.isArray(patch.extractedMedia)) {
+        return { ok: false, error: 'extractedMedia must be an array' };
+      }
+      next.extractedMedia = patch.extractedMedia as ExtractedMedia[];
+    }
+
+    this.state.items[index] = next;
+    this.state.lastUpdate = Date.now();
+    return { ok: true, item: next };
+  }
+
+  patchItemByGuid(
+    guid: string,
+    patch: ItemPatch & Record<string, unknown>,
+  ): { ok: true; item: GeneratedItem } | { ok: false; error: string } {
+    const index = this.state.items.findIndex((i) => i.guid === guid);
+    if (index === -1) {
+      return { ok: false, error: 'Item not found' };
+    }
+    return this.patchItemByIndex(index, patch);
   }
 }

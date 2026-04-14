@@ -19,6 +19,8 @@ export interface FeedConfig {
   // Item generation
   itemCount: number;
   updateIntervalMs: number;
+  /** When true, any config change triggers a full item regeneration. When false, only POST /api/regenerate (and first config bootstrap) replaces items. */
+  regenerateOnConfigChange: boolean;
 
   // Content generation
   contentOptions: ContentOptions;
@@ -88,6 +90,14 @@ export interface GeneratedItem {
   categories: string[];
   extractedMedia: ExtractedMedia[];
 }
+
+/** PATCH body for an item; `guid` must not be used to change identity (rejected by API). */
+export type ItemPatch = Partial<
+  Omit<GeneratedItem, 'guid' | 'publishedAt' | 'lastModifiedAt'>
+> & {
+  publishedAt?: string | Date;
+  lastModifiedAt?: string | Date;
+};
 
 export interface ExtractedMedia {
   originalUrl: string;
