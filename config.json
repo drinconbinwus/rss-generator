@@ -5,10 +5,11 @@
   "language": "en-us",
   "itemCount": 10,
   "updateIntervalMs": 3600000,
+  "regenerateOnConfigChange": false,
   "contentOptions": {
     "titleLength": {
-      "min": 10,
-      "max": 10
+      "min": 28,
+      "max": 34
     },
     "contentLength": {
       "min": 1525,

@@ -3,15 +3,55 @@ import type { ConfigManager } from '../config';
 import type { ContentSourceFormat, FeedConfig, ItemPatch } from '../types';
 import { formatFeed } from '../formatters';
 
+/** Skip gzip on tiny bodies — overhead often outweighs savings. */
+const MIN_BYTES_FOR_GZIP = 256;
+
+function feedResponse(
+  body: string,
+  contentType: string,
+  request: Request,
+): Response {
+  const headers: Record<string, string> = {
+    'Content-Type': `${contentType}; charset=utf-8`,
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Access-Control-Allow-Origin': '*',
+  };
+
+  const enc = request.headers.get('Accept-Encoding') ?? '';
+  const wantGzip =
+    body.length >= MIN_BYTES_FOR_GZIP && /\bgzip\b/i.test(enc);
+
+  if (wantGzip) {
+    headers['Content-Encoding'] = 'gzip';
+    headers['Vary'] = 'Accept-Encoding';
+    const encoded = new TextEncoder().encode(body);
+    const uncompressed = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoded);
+        controller.close();
+      },
+    });
+    const compressed = uncompressed.pipeThrough(
+      new CompressionStream('gzip') as TransformStream<
+        Uint8Array,
+        Uint8Array
+      >,
+    );
+    return new Response(compressed, { headers });
+  }
+
+  return new Response(body, { headers });
+}
+
 export function createApiRoutes(
   generator: FeedGenerator,
   configManager: ConfigManager,
 ) {
   return {
-    async handleFeed(
+    handleFeed(
       request: Request,
       format: ContentSourceFormat,
-    ): Promise<Response> {
+    ): Response {
       const url = new URL(request.url);
       const source = url.searchParams.get('source') || 'default';
       const items = generator.getItems(source);
@@ -21,13 +61,7 @@ export function createApiRoutes(
       const contentType =
         format === 'JSON' ? 'application/json' : 'application/xml';
 
-      return new Response(content, {
-        headers: {
-          'Content-Type': `${contentType}; charset=utf-8`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
+      return feedResponse(content, contentType, request);
     },
 
     async handleGetConfig(): Promise<Response> {

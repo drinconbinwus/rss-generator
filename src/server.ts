@@ -1,8 +1,16 @@
-import type { ContentSourceFormat } from './types';
 import { configManager } from './config';
 import { FeedGenerator } from './feed-generator';
-import { formatFeed } from './formatters';
 import { createApiRoutes, createUiRoutes } from './routes';
+
+function corsPreflightResponse(): Response {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
 
 export function createServer(port = 3000) {
   const generator = new FeedGenerator(configManager.getConfig(), (cb) =>
@@ -14,76 +22,80 @@ export function createServer(port = 3000) {
 
   const server = Bun.serve({
     port,
+    routes: {
+      '/': {
+        GET: () => uiRoutes.handleUi(),
+        HEAD: () => uiRoutes.handleUi(),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/ui': {
+        GET: () => uiRoutes.handleUi(),
+        HEAD: () => uiRoutes.handleUi(),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/config': {
+        GET: () => uiRoutes.handleGetConfig(),
+        PATCH: (req) => uiRoutes.handleUpdateConfig(req),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/config/content-options': {
+        PATCH: (req) => uiRoutes.handleUpdateContentOptions(req),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/config/field-behavior': {
+        PATCH: (req) => uiRoutes.handleUpdateFieldBehavior(req),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/config/reset': {
+        POST: () => uiRoutes.handleResetConfig(),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/regenerate': {
+        POST: () => uiRoutes.handleRegenerate(),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/state': {
+        GET: () => uiRoutes.handleGetState(),
+        HEAD: () => uiRoutes.handleGetState(),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/items': {
+        GET: () => apiRoutes.handleGetItems(),
+        PATCH: (req) => apiRoutes.handlePatchItemByGuidBody(req),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/items/:index': {
+        PATCH: (req) => {
+          const raw = req.params.index;
+          if (!/^\d+$/.test(raw)) {
+            return new Response('Not Found', { status: 404 });
+          }
+          return apiRoutes.handlePatchItemByIndex(
+            req,
+            Number.parseInt(raw, 10),
+          );
+        },
+        OPTIONS: () => corsPreflightResponse(),
+      },
+      '/api/endpoints': {
+        GET: (req) => apiRoutes.handleGetEndpoints(req),
+        HEAD: (req) => apiRoutes.handleGetEndpoints(req),
+        OPTIONS: () => corsPreflightResponse(),
+      },
+    },
     async fetch(request) {
-      const url = new URL(request.url);
-      const path = url.pathname;
-
-      // CORS preflight
       if (request.method === 'OPTIONS') {
-        return new Response(null, {
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          },
-        });
+        return corsPreflightResponse();
       }
 
-      // Feed endpoints
+      const url = new URL(request.url);
+      const path = url.pathname;
       const config = configManager.getConfig();
+
       for (const endpoint of config.endpoints) {
         if (path === endpoint.path && endpoint.enabled) {
           return apiRoutes.handleFeed(request, endpoint.format);
         }
-      }
-
-      // API routes
-      if (path === '/api/config' && request.method === 'GET') {
-        return uiRoutes.handleGetConfig();
-      }
-      if (path === '/api/config' && request.method === 'PATCH') {
-        return uiRoutes.handleUpdateConfig(request);
-      }
-      if (
-        path === '/api/config/content-options' &&
-        request.method === 'PATCH'
-      ) {
-        return uiRoutes.handleUpdateContentOptions(request);
-      }
-      if (path === '/api/config/field-behavior' && request.method === 'PATCH') {
-        return uiRoutes.handleUpdateFieldBehavior(request);
-      }
-      if (path === '/api/config/reset' && request.method === 'POST') {
-        return uiRoutes.handleResetConfig();
-      }
-      if (path === '/api/regenerate' && request.method === 'POST') {
-        return uiRoutes.handleRegenerate();
-      }
-      if (path === '/api/state') {
-        return uiRoutes.handleGetState();
-      }
-      if (path === '/api/items') {
-        if (request.method === 'GET') {
-          return apiRoutes.handleGetItems();
-        }
-        if (request.method === 'PATCH') {
-          return apiRoutes.handlePatchItemByGuidBody(request);
-        }
-      }
-      const itemPatchMatch = path.match(/^\/api\/items\/(\d+)$/);
-      if (itemPatchMatch && request.method === 'PATCH') {
-        return apiRoutes.handlePatchItemByIndex(
-          request,
-          Number.parseInt(itemPatchMatch[1]!, 10),
-        );
-      }
-      if (path === '/api/endpoints') {
-        return apiRoutes.handleGetEndpoints(request);
-      }
-
-      // UI
-      if (path === '/' || path === '/ui') {
-        return uiRoutes.handleUi();
       }
 
       return new Response('Not Found', { status: 404 });
@@ -108,7 +120,6 @@ ${configManager
 ╚══════════════════════════════════════════════════════════════╝
 `);
 
-  // Handle graceful shutdown
   const shutdown = () => {
     console.log('\n🛑 Shutting down server...');
     server.stop();

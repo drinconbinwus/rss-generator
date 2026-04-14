@@ -969,6 +969,16 @@ function getUiHtml(): string {
       await loadItemsList();
       updateState();
     }
+
+    /** Honors "Regenerate items when config changes" — server only skips regen; the UI was calling POST /api/regenerate unconditionally. */
+    async function maybeRegenerateAfterConfigChange() {
+      if (document.getElementById('regenerateOnConfigChange').checked) {
+        await regenerate();
+      } else {
+        showToast('Saved');
+        await loadConfig();
+      }
+    }
     
     async function resetConfig() {
       if (confirm('Reset all settings to defaults?')) {
@@ -997,7 +1007,7 @@ function getUiHtml(): string {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemCount: parseInt(document.getElementById('itemCount').value) })
       });
-      regenerate();
+      await maybeRegenerateAfterConfigChange();
     }
     
     async function updateInterval() {
@@ -1058,7 +1068,7 @@ function getUiHtml(): string {
           dateRangeDays: parseInt(document.getElementById('dateRangeDays').value)
         })
       });
-      regenerate();
+      await maybeRegenerateAfterConfigChange();
     }
     
     async function updateFieldPresence(field, value) {
@@ -1068,7 +1078,7 @@ function getUiHtml(): string {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: value / 100 })
       });
-      regenerate();
+      await maybeRegenerateAfterConfigChange();
     }
     
     async function toggleForceEmpty(field, checked) {
@@ -1081,7 +1091,7 @@ function getUiHtml(): string {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ forceEmptyFields: [...current] })
       });
-      regenerate();
+      await maybeRegenerateAfterConfigChange();
     }
     
     async function toggleForceInvalid(field, checked) {
@@ -1094,7 +1104,7 @@ function getUiHtml(): string {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ forceInvalidValues: [...current] })
       });
-      regenerate();
+      await maybeRegenerateAfterConfigChange();
     }
     
     async function updateState() {
